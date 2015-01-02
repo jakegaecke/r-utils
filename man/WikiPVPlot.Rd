@@ -4,16 +4,18 @@
 \alias{WikiPVPlot}
 \title{Wikipedia Plot}
 \usage{
-WikiPVPlot(input)
+WikiPVPlot(input, smooth = FALSE)
 }
 \arguments{
 \item{input}{Wikipedia page view data frame from getWikiStats() function. Columns requires are Views, Date, and Wikipedia (article titles).}
+
+\item{smooth}{Adds smoothed trend line for page views. Defaults to FALSE.}
 }
 \description{
 Plots Wikipedia page view data over time.
 }
 \examples{
-WikiPVPlot(wiki_data)
+WikiPVPlot(wiki_data, TRUE)
 }
 \keyword{plot}
 \keyword{wikipedia,}

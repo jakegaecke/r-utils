@@ -91,10 +91,11 @@ getWikiStats <- function(y1, y2, terms){
 #'
 #' Plots Wikipedia page view data over time.
 #' @param input Wikipedia page view data frame from getWikiStats() function. Columns requires are Views, Date, and Wikipedia (article titles).
+#' @param smooth Adds smoothed trend line for page views. Defaults to FALSE.
 #' @keywords wikipedia, plot
 #' @export
 #' @examples
-#' WikiPVPlot(wiki_data)
+#' WikiPVPlot(wiki_data, TRUE)
 WikiPVPlot<- function(input, smooth=FALSE){
   #function to plot data from the getWikiStats function
   require(lubridate)
