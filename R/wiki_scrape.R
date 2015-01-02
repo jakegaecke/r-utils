@@ -95,13 +95,17 @@ getWikiStats <- function(y1, y2, terms){
 #' @export
 #' @examples
 #' WikiPVPlot(wiki_data)
-WikiPVPlot<- function(input){
+WikiPVPlot<- function(input, smooth=FALSE){
   #function to plot data from the getWikiStats function
   require(lubridate)
   require(ggplot2)
   input$Date <- as.Date(input$Date)
   names(input) <- c("Views", "Date", "Wikipedia")
-  ggplot(input, aes(Date, Views, colour=Wikipedia)) + geom_line() + theme(legend.position="top") #+ geom_smooth(alpha=0.5)
+  if(smooth){
+    ggplot(input, aes(Date, Views, colour=Wikipedia)) + geom_line() + theme(legend.position="top") + geom_smooth(alpha=0.5)
+  } else {
+    ggplot(input, aes(Date, Views, colour=Wikipedia)) + geom_line() + theme(legend.position="top")
+  }
 }
 
 #' Wikipedia URL
