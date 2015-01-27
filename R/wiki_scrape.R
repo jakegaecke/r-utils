@@ -100,10 +100,19 @@ WikiPVPlot<- function(input, smooth=FALSE){
   #function to plot data from the getWikiStats function
   require(lubridate)
   require(ggplot2)
+  #devtools::install_github("twitter/AnomalyDetection")
+  require(AnomalyDetection)
   input$Date <- as.Date(input$Date)
   names(input) <- c("Views", "Date", "Wikipedia")
   if(smooth){
-    ggplot(input, aes(Date, Views, colour=Wikipedia)) + geom_line() + theme(legend.position="top") + geom_smooth(alpha=0.5)
+    res <- AnomalyDetectionVec(wiki_data$Views, max_anoms=0.05, direction='both', plot=TRUE, period=7, ylabel="Date")
+    #period=7 signifies daily data. One week = 7 days.
+    ggplot(wiki_data, aes(Date, Views, colour = Wikipedia)) +
+      geom_line() + theme(legend.position = "top") + geom_smooth(alpha = 0.5) +
+      geom_point(data=wiki_data[res$anoms$index ,], size=4, alpha=0.5) +
+      geom_text(data=wiki_data[res$anoms$index ,], aes(label=Date), size = 4, hjust = -0.2) +
+      geom_text(data=wiki_data[res$anoms$index ,], aes(label=Views), size = 4, hjust = 1.4)
+    #ggplot(input, aes(Date, Views, colour=Wikipedia)) + geom_line() + theme(legend.position="top") + geom_smooth(alpha=0.5)
   } else {
     ggplot(input, aes(Date, Views, colour=Wikipedia)) + geom_line() + theme(legend.position="top")
   }
