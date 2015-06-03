@@ -39,13 +39,17 @@ right <- function(str, n){
 #' @param y1 Beginning Year.
 #' @param y2 Ending Year.
 #' @param term This is the unique part of the Wikipedia URL representing the article. This may be a vector representing more than one article.
+#' @param lookup_URL Determines whether script uses Google to find Wikipedia page URL.
 #' @keywords wikipedia
 #' @export
 #' @examples
 #' getWikiURLs(2010, 2014, c("NASA", "Orion_(spacecraft)", "Delta_IV_Heavy", "Exploration_Flight_Test_1"))
-getWikiURLs <- function(y1, y2, term){
+getWikiURLs <- function(y1, y2, term, lookup_URL = TRUE){
   #function to create a list of urls given a term and a start and endpoint
   urls <- NULL
+  if(lookup_URL){
+    term <- wikiURL(term, page_only = TRUE)
+  }
   for (year in y1:y2){
     for (month in 1:12){
       urls <- c(urls, (paste("http://stats.grok.se/json/en/", year, right(paste0("00", month), 2), "/", term, sep="")))
@@ -62,16 +66,22 @@ getWikiURLs <- function(y1, y2, term){
 #' @param y1 Beginning Year.
 #' @param y2 Ending Year.
 #' @param term This is the unique part of the Wikipedia URL representing the article. This may be a vector representing more than one article.
+#' @param lookup_URL Determines whether script uses Google to find Wikipedia page URL.
 #' @keywords wikipedia, pageviews
 #' @export
 #' @examples
 #' wiki_data <- getWikiStats(2013, 2014, c("NASA", "Orion_(spacecraft)", "Delta_IV_Heavy", "Exploration_Flight_Test_1"))
-getWikiStats <- function(y1, y2, terms){
+getWikiStats <- function(y1, y2, terms, lookup_URL = TRUE){
   #function to download data for each term
   #returns a dataframe
   output <- NULL
   for (term in terms){
-    urls <- getWikiURLs(y1, y2, term)
+
+    if(lookup_URL){
+      term <- wikiURL(term, page_only = TRUE)
+    }
+
+    urls <- getWikiURLs(y1, y2, term, FALSE)
 
     results <- NULL
     for (url in urls){
@@ -95,7 +105,7 @@ getWikiStats <- function(y1, y2, terms){
 #' @keywords wikipedia, plot
 #' @export
 #' @examples
-#' WikiPVPlot(wiki_data, TRUE)
+#' WikiPVPlot(input, TRUE)
 WikiPVPlot<- function(input, smooth=FALSE){
   #function to plot data from the getWikiStats function
   require(lubridate)
@@ -105,34 +115,65 @@ WikiPVPlot<- function(input, smooth=FALSE){
   input$Date <- as.Date(input$Date)
   names(input) <- c("Views", "Date", "Wikipedia")
   if(smooth){
-    res <- AnomalyDetectionVec(wiki_data$Views, max_anoms=0.05, direction='both', plot=TRUE, period=7, ylabel="Date")
+    res <- AnomalyDetectionVec(input$Views, max_anoms=0.05, direction='both', plot=TRUE, period=7, ylabel="Date")
     #period=7 signifies daily data. One week = 7 days.
-    ggplot(wiki_data, aes(Date, Views, colour = Wikipedia)) +
+    ggplot(input, aes(Date, Views, colour = Wikipedia)) +
       geom_line() + theme(legend.position = "top") + geom_smooth(alpha = 0.5) +
-      geom_point(data=wiki_data[res$anoms$index ,], size=4, alpha=0.5) +
-      geom_text(data=wiki_data[res$anoms$index ,], aes(label=Date), size = 4, hjust = -0.2) +
-      geom_text(data=wiki_data[res$anoms$index ,], aes(label=Views), size = 4, hjust = 1.4)
+      geom_point(data=input[res$anoms$index ,], size=4, alpha=0.5) +
+      geom_text(data=input[res$anoms$index ,], aes(label=Date), size = 4, hjust = -0.2) +
+      geom_text(data=input[res$anoms$index ,], aes(label=Views), size = 4, hjust = 1.4)
     #ggplot(input, aes(Date, Views, colour=Wikipedia)) + geom_line() + theme(legend.position="top") + geom_smooth(alpha=0.5)
   } else {
     ggplot(input, aes(Date, Views, colour=Wikipedia)) + geom_line() + theme(legend.position="top")
   }
 }
 
+#' Wikipedia ggvis Pageview Plot
+#'
+#' Plots Wikipedia page view data over time, plotted via ggvis.
+#' @param input Wikipedia page view data frame from getWikiStats() function. Columns requires are Views, Date, and Wikipedia (article titles).
+#' @param smooth Adds smoothed trend line for page views. Defaults to FALSE.
+#' @keywords wikipedia, plot
+#' @export
+#' @examples
+#' WikiPVPlot_ggvis(input, TRUE)
+WikiPVPlot_ggvis<- function(input, smooth=FALSE){
+  #function to plot data from the getWikiStats function
+  require(lubridate)
+  require(ggvis)
+  require(AnomalyDetection)
+  input$Date <- as.Date(input$Date)
+  names(input) <- c("Views", "Date", "Wikipedia")
+
+
+    input %>%
+      ggvis(~Date, ~Views, fill = ~factor(Wikipedia)) %>%
+      layer_lines() %>%
+      add_tooltip(function() ~Views) %>%
+      group_by(Wikipedia) %>%
+      layer_model_predictions(model = "lm", se = smooth)
+
+}
+
 #' Wikipedia URL
 #'
 #' This function searches the internet using Google for the search term and the word 'Wikipedia'. Returns the URL of the first result.
 #' @param term Search term to find a relevant Wikipedia page.
+#' @param page_only Determines whether just last part of the Wikipedia page URL is returned. Defaults to entire URL.
 #' @keywords wikipedia, google, search
 #' @export
 #' @examples
 #' wikiURL('Orion capsule')
-wikiURL <- function(term){
+wikiURL <- function(term, page_only=FALSE){
   library(RCurl)
   library(RJSONIO)  # or library(rjson)
   val <- getForm("http://ajax.googleapis.com/ajax/services/search/web", q = paste0("Wikipedia ", term), v = "1.0")
   results <- fromJSON(val)
   url <- results$responseData$results[[1]][3]
-  print(url)
+  if(page_only){
+    url <- sub("http://en.wikipedia.org/wiki/", "", url)
+  }
+  #print(url)
   return(url)
 }
 
